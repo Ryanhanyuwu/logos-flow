@@ -1,40 +1,49 @@
-"use client";
-
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { cn } from "~/lib/utils";
+import { signOut } from "~/actions/auth";
+import { createClient } from "~/lib/supabase/server";
+import { Button } from "~/components/ui/button";
 
-const links = [
-  { href: "/", label: "Home" },
-  { href: "/notes", label: "Notes" },
-];
-
-export function Navbar() {
-  const pathname = usePathname();
+export async function Navbar() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const username = user?.user_metadata?.username as string | undefined;
 
   return (
-    <nav className="border-b border-border bg-background">
-      <div className="mx-auto flex h-14 max-w-3xl items-center gap-6 px-4">
-        <Link href="/" className="font-semibold tracking-tight">
-          Lumos App
-        </Link>
-        <div className="flex gap-4">
-          {links.map((link) => (
+    <header className="flex h-11 shrink-0 items-center justify-between border-b border-border bg-background px-5">
+      <Link
+        href="/"
+        className="text-sm font-medium tracking-tight text-foreground"
+      >
+        Logos Flow
+      </Link>
+      <div className="flex items-center gap-3">
+        {user ? (
+          <>
+            <span className="text-sm text-muted-foreground">{username}</span>
+            <form action={signOut}>
+              <Button type="submit" variant="ghost" size="sm">
+                Sign out
+              </Button>
+            </form>
+          </>
+        ) : (
+          <>
             <Link
-              key={link.href}
-              href={link.href}
-              className={cn(
-                "text-sm transition-colors hover:text-foreground",
-                pathname === link.href
-                  ? "text-foreground"
-                  : "text-muted-foreground",
-              )}
+              href="/auth/login"
+              className="text-sm text-muted-foreground hover:text-foreground"
             >
-              {link.label}
+              Sign in
             </Link>
-          ))}
-        </div>
+            <Link href="/auth/signup">
+              <Button variant="outline" size="sm">
+                Sign up
+              </Button>
+            </Link>
+          </>
+        )}
       </div>
-    </nav>
+    </header>
   );
 }

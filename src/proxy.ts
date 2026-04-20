@@ -23,7 +23,7 @@ export async function proxy(request: NextRequest) {
           }
         },
       },
-    }
+    },
   );
 
   // Refresh the auth token
