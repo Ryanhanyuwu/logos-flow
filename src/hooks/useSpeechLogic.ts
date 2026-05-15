@@ -8,6 +8,7 @@ import {
   type LogicGraph,
 } from "~/actions/processSpeechLogic";
 import { reconcileGraphState } from "~/lib/reconcile";
+import { chunkText } from "~/lib/chunk";
 
 // ─── Tuning constants ─────────────────────────────────────────────────────────
 
@@ -19,6 +20,8 @@ const PERIODIC_MS = 2000;
 const EDGE_VALIDATION_DELAY_MS = 2500;
 /** How long after a node is added before it flips to "validated". */
 const VALIDATION_DELAY_MS = 1000;
+/** Max characters per paste chunk (~200 words). */
+const CHUNK_CHARS = 1200;
 
 const wordCount = (s: string) =>
   s.trim() === "" ? 0 : s.trim().split(/\s+/).length;
@@ -28,6 +31,7 @@ const wordCount = (s: string) =>
 export function useSpeechLogic() {
   const [isListening, setIsListening] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [chunkProgress, setChunkProgress] = useState<{ current: number; total: number } | null>(null);
   // Combined finalized + interim text (drives the live transcript pill and ghost node)
   const [transcript, setTranscript] = useState("");
   const [graph, setGraph] = useState<LogicGraph>({ nodes: [], edges: [] });
@@ -170,17 +174,76 @@ export function useSpeechLogic() {
     [scheduleValidation, validateNow, scheduleEdgeValidation],
   );
 
+  // ── Chunked paste processing ──────────────────────────────────────────────────
+
+  const processChunkedInput = useCallback(
+    async (text: string) => {
+      const chunks = chunkText(text, CHUNK_CHARS);
+
+      if (chunks.length <= 1) {
+        processSegmentRef.current(text, "paste");
+        return;
+      }
+
+      if (isProcessingRef.current) return;
+
+      isProcessingRef.current = true;
+      setIsProcessing(true);
+      setError(null);
+
+      try {
+        for (let i = 0; i < chunks.length; i++) {
+          setChunkProgress({ current: i + 1, total: chunks.length });
+
+          const additions = await processSpeechLogic(
+            chunks[i],
+            graphRef.current,
+            "paste",
+          );
+          const { merged, newlyValidatedIds } = reconcileGraphState(
+            graphRef.current,
+            additions,
+          );
+
+          graphRef.current = merged;
+          setGraph(merged);
+          for (const node of additions.nodes) scheduleValidation(node.id);
+          validateNow(newlyValidatedIds);
+          if (merged.edges.length > 0) scheduleEdgeValidation();
+        }
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e));
+      } finally {
+        isProcessingRef.current = false;
+        setIsProcessing(false);
+        setChunkProgress(null);
+        const pending = pendingTextRef.current;
+        if (pending) {
+          pendingTextRef.current = null;
+          processSegmentRef.current(pending.text, pending.inputType);
+        }
+      }
+    },
+    [scheduleValidation, validateNow, scheduleEdgeValidation],
+  );
+
   // ── Text input pipeline ───────────────────────────────────────────────────────
 
-  const processTextInput = useCallback((text: string, inputType: InputType) => {
-    if (!text.trim()) return;
-    if (isProcessingRef.current) {
-      // Queue the latest text; overwrite any previously pending text
-      pendingTextRef.current = { text, inputType };
-      return;
-    }
-    processSegmentRef.current(text, inputType);
-  }, []);
+  const processTextInput = useCallback(
+    (text: string, inputType: InputType) => {
+      if (!text.trim()) return;
+      if (isProcessingRef.current) {
+        pendingTextRef.current = { text, inputType };
+        return;
+      }
+      if (inputType === "paste" && text.length > CHUNK_CHARS) {
+        void processChunkedInput(text);
+        return;
+      }
+      processSegmentRef.current(text, inputType);
+    },
+    [processChunkedInput],
+  );
 
   // Keep the ref current so closures in recognition callbacks always see latest.
   useEffect(() => {
@@ -402,6 +465,7 @@ export function useSpeechLogic() {
   return {
     isListening,
     isProcessing,
+    chunkProgress,
     transcript,
     graph,
     validatedIds,

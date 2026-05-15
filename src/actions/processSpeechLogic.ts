@@ -2,7 +2,7 @@
 
 import { env } from "~/env";
 
-export type NodeType = "Claim" | "Evidence" | "Conclusion";
+export type NodeType = "Claim" | "Evidence" | "Conclusion" | "Counter-Point";
 
 export interface LogicNode {
   id: string;
@@ -26,13 +26,14 @@ export interface LogicGraph {
 export type InputType = "speech" | "incremental" | "paste";
 
 const BASE_RULES = `Rules:
-- Each node must have: id (unique string integer), label (concise cleaned phrase), type ("Claim" | "Evidence" | "Conclusion")
+- Each node must have: id (unique string integer), label (concise cleaned phrase), type ("Claim" | "Evidence" | "Conclusion" | "Counter-Point")
 - Each edge must have: source (node id), target (node id)
 - Edges point from supporting node to supported node (Evidence → Claim, Claim → Conclusion)
+- Counter-Point nodes represent objections, rebuttals, or opposing arguments; their edges point to the Claim or Conclusion they challenge
 - Return ONLY valid JSON, no markdown fences, no extra text.
 
 Example output:
-{"nodes":[{"id":"1","label":"Climate is changing","type":"Claim"},{"id":"2","label":"Carbon emissions","type":"Evidence"}],"edges":[{"source":"2","target":"1"}]}`;
+{"nodes":[{"id":"1","label":"Climate is changing","type":"Claim"},{"id":"2","label":"Carbon emissions rose 40%","type":"Evidence"},{"id":"3","label":"Natural cycles explain warming","type":"Counter-Point"}],"edges":[{"source":"2","target":"1"},{"source":"3","target":"1"}]}`;
 
 const SYSTEM_PROMPTS: Record<InputType, string> = {
   speech: `You are a Logic Interpreter. Receive a transcript that may contain stutters, repetitions, and filler words.
@@ -49,10 +50,11 @@ ${BASE_RULES}`,
 
 ${BASE_RULES}`,
 
-  paste: `You are a Logic Interpreter. Receive a complete block of text (pasted or written).
-1. Parse the full argument structure: identify all Claims, Evidence, and Conclusions.
-2. Build a comprehensive logic graph that captures the entire argument.
-3. Return a JSON object with nodes (id, label, type) and edges (source, target).
+  paste: `You are a Logic Interpreter. Receive a segment of a longer argument (debate case, essay, or speech).
+1. Parse the argument structure in this segment: identify Claims, Evidence, Conclusions, and Counter-Points.
+2. Counter-Points are objections, rebuttals, or opposing arguments — mark them "Counter-Point" and connect them to the node they challenge.
+3. Build a logic graph for this segment. Reuse any node IDs listed in "Existing nodes" rather than duplicating them.
+4. Return a JSON object with nodes (id, label, type) and edges (source, target).
 
 ${BASE_RULES}`,
 };

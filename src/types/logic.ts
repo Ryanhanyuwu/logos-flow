@@ -1,6 +1,6 @@
 import type { Node } from "@xyflow/react";
 
-export type LogicNodeType = "Claim" | "Evidence" | "Conclusion" | "Ghost";
+export type LogicNodeType = "Claim" | "Evidence" | "Conclusion" | "Counter-Point" | "Ghost";
 export type LogicNodeStatus = "draft" | "validated" | "ghost";
 
 // Data payload stored inside each React Flow node

@@ -22,6 +22,7 @@ export default function Home() {
   const {
     isListening,
     isProcessing,
+    chunkProgress,
     transcript,
     graph,
     validatedIds,
@@ -225,7 +226,11 @@ export default function Home() {
               {!isReviewMode && (transcript || isProcessing) && (
                 <div className="max-w-sm rounded-full border border-border bg-background/80 px-4 py-1.5 text-center text-xs text-muted-foreground backdrop-blur-sm">
                   {isProcessing ? (
-                    <span className="animate-pulse">Processing…</span>
+                    <span className="animate-pulse">
+                      {chunkProgress
+                        ? `Building map — chunk ${chunkProgress.current} of ${chunkProgress.total}…`
+                        : "Processing…"}
+                    </span>
                   ) : (
                     transcript
                   )}
@@ -366,6 +371,7 @@ export default function Home() {
               {!isReviewMode && (
                 <UniversalInput
                   isProcessing={isProcessing}
+                  chunkProgress={chunkProgress}
                   onTextInput={processTextInput}
                 />
               )}

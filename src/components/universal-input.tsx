@@ -11,11 +11,13 @@ const DEBOUNCE_MS = 800;
 
 interface UniversalInputProps {
   isProcessing: boolean;
+  chunkProgress?: { current: number; total: number } | null;
   onTextInput: (text: string, inputType: InputType) => void;
 }
 
 export function UniversalInput({
   isProcessing,
+  chunkProgress,
   onTextInput,
 }: UniversalInputProps) {
   const [liveMode, setLiveMode] = useState(true);
@@ -153,10 +155,14 @@ export function UniversalInput({
             showIndicator ? "opacity-100" : "opacity-0",
           )}
         >
-          {isBulkFlash ? (
+          {isBulkFlash || chunkProgress ? (
             <>
               <span className="h-1.5 w-1.5 animate-ping rounded-full bg-blue-400" />
-              <span className="text-blue-400">Bulk processing…</span>
+              <span className="text-blue-400">
+                {chunkProgress
+                  ? `Chunk ${chunkProgress.current}/${chunkProgress.total}…`
+                  : "Bulk processing…"}
+              </span>
             </>
           ) : (
             <>

@@ -32,6 +32,7 @@ const TYPE_STYLES: Record<LogicNodeType, string> = {
   Evidence: "border-sky-500/40 text-sky-400",
   Claim: "border-border text-foreground",
   Conclusion: "border-emerald-500/40 text-emerald-400",
+  "Counter-Point": "border-amber-500/40 text-amber-400",
   Ghost: "border-muted-foreground/30 text-muted-foreground/70",
 };
 
@@ -39,6 +40,7 @@ const TYPE_GLOW: Record<LogicNodeType, string> = {
   Evidence: "shadow-lg shadow-sky-500/25",
   Claim: "shadow-lg shadow-slate-400/20",
   Conclusion: "shadow-lg shadow-emerald-500/25",
+  "Counter-Point": "shadow-lg shadow-amber-500/25",
   Ghost: "",
 };
 
@@ -46,6 +48,7 @@ const TYPE_LABEL: Record<LogicNodeType, string> = {
   Evidence: "Evidence",
   Claim: "Claim",
   Conclusion: "Conclusion",
+  "Counter-Point": "Counter-Point",
   Ghost: "Listening…",
 };
 
@@ -54,6 +57,7 @@ const MINIMAP_COLORS: Record<LogicNodeType, string> = {
   Evidence: "#0ea5e9",
   Claim: "#64748b",
   Conclusion: "#10b981",
+  "Counter-Point": "#f59e0b",
   Ghost: "#334155",
 };
 
